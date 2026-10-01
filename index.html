@@ -9,29 +9,76 @@
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
+/* =============================
+   CETAK LABEL TOM & JERRY NO.103
+   Label: 64 x 32 mm
+   Layout: 3 kolom x 4 baris = 12 label/lembar
+   Lembar fisik: 210 x 150 mm
+   ============================= */
+@page{size:215.9mm 330.2mm;margin:0}
+@page barcodePage{size:210mm 150mm;margin:0}
+
 @media print{
-  @page{size:215.9mm 330.2mm;margin:0}
-  html,body{margin:0!important;padding:0!important;background:#fff!important;overflow:hidden!important}
+  html,body{margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
   body > *:not(#printHost){display:none!important}
   #printHost{display:block!important;position:static!important;margin:0!important;padding:0!important}
+
+  /* Dokumen administrasi tetap F4/Folio */
   .print-area,.print-area *{visibility:visible!important}
-  .print-area{position:absolute;left:0;top:0;width:100%;margin:0!important;box-shadow:none!important}
+  .print-area{page:auto;position:absolute;left:0;top:0;width:100%;margin:0!important;box-shadow:none!important}
+
+  /* Barcode memakai halaman khusus 210 x 150 mm */
   .barcode-sheet,.barcode-sheet *{visibility:visible!important}
-  .barcode-sheet{display:grid!important;position:relative!important;left:0!important;top:0!important;margin:0!important}
+  .barcode-sheet{
+    page:barcodePage;
+    display:grid!important;
+    position:relative!important;
+    left:0!important;
+    top:0!important;
+    width:210mm!important;
+    height:150mm!important;
+    margin:0!important;
+    padding:0!important;
+    box-sizing:border-box!important;
+    background:#fff!important;
+    box-shadow:none!important;
+    overflow:hidden!important;
+  }
+  .barcode-page-break{break-after:page!important;page-break-after:always!important}
 }
-.barcode-label{box-sizing:border-box;width:64mm;height:32mm;border:0;padding:2.2mm 2.5mm;text-align:center;background:white;overflow:hidden}
+
+.barcode-label{
+  box-sizing:border-box;
+  width:64mm;
+  height:32mm;
+  border:0;
+  padding:2.2mm 2.5mm;
+  text-align:center;
+  background:white;
+  overflow:hidden;
+}
 .barcode-label svg{display:block;width:100%;height:12mm;margin:1mm auto 0}
-/* Template Tom & Jerry No.103: 64x32mm, 3 kolom x 4 baris, pitch 65x33mm, lembar 195x135mm. */
-.barcode-sheet{width:195mm;height:135mm;box-sizing:border-box;padding:1mm;display:grid;grid-template-columns:repeat(3,64mm);grid-template-rows:repeat(4,32mm);column-gap:1mm;row-gap:1mm;background:white;align-content:start}
+
+/* Posisi 3 x 4 dibuat simetris di lembar 210 x 150 mm.
+   Jarak antar label 2 mm; sisa margin sekitar 7 mm kiri/kanan
+   dan 8 mm atas/bawah. */
+.barcode-sheet{
+  width:210mm;
+  height:150mm;
+  box-sizing:border-box;
+  padding:8mm 7mm;
+  display:grid;
+  grid-template-columns:repeat(3,64mm);
+  grid-template-rows:repeat(4,32mm);
+  column-gap:2mm;
+  row-gap:2mm;
+  background:white;
+  align-content:start;
+}
+
 .scan-result{min-height:92px}
 #reader{width:100%;max-width:520px;margin:auto}
 #reader video{border-radius:16px}
-@media print{
-  @page{size:195mm 135mm;margin:0}
-  body{background:white!important}
-  .barcode-sheet{padding:1mm!important}
-  .barcode-page-break{break-after:page;page-break-after:always}
-}
 </style>
 </head>
 <body class="bg-slate-100 text-slate-800">
@@ -94,7 +141,7 @@ function barcode(){
   <div class="bg-white rounded-2xl p-6 shadow-sm">
    <div class="flex flex-wrap items-start justify-between gap-4">
     <div><h2 class="font-bold text-lg">Cetak Barcode Inventaris</h2>
-    <p class="text-sm text-slate-500 mt-1">Format label Tom & Jerry No. 103: 64 × 32 mm, 3 kolom × 4 baris = 12 label per lembar.</p></div>
+    <p class="text-sm text-slate-500 mt-1">Format label Tom & Jerry No. 103: 64 × 32 mm, 3 kolom × 4 baris = 12 label per lembar. Ukuran lembar cetak disiapkan otomatis 210 × 150 mm.</p></div>
    </div>
    <div class="grid md:grid-cols-4 gap-3 mt-5">
     <label class="text-sm font-semibold">Filter kategori
@@ -117,7 +164,7 @@ function barcode(){
    <div class="mt-4 p-4 bg-indigo-50 rounded-xl text-sm text-slate-700">
     <b>Contoh:</b> jika ingin mencetak barcode nomor <b>13 sampai 24</b>, isi <b>Mulai 13</b> dan <b>Sampai 24</b>, lalu klik <b>Cetak Rentang</b>. Jika hasilnya lebih dari 12 label, otomatis dibuat menjadi beberapa lembar.
    </div>
-   <div class="mt-3 p-4 bg-slate-50 rounded-xl text-sm text-slate-600"><b>Tips cetak:</b> gunakan ukuran kertas custom <b>195 × 135 mm</b>, skala <b>100%</b> / Actual Size, dan matikan “Fit to page” agar posisi label tepat di kotak stiker.</div>
+   <div class="mt-3 p-4 bg-slate-50 rounded-xl text-sm text-slate-600"><b>Tips cetak:</b> gunakan kertas/template <b>210 × 150 mm</b>. Aplikasi sudah menyiapkan ukuran label 64 × 32 mm dan posisi 3 × 4. Jika dialog printer menampilkan skala, pilih <b>100%</b> / Actual Size dan matikan “Fit to page”.</div>
   </div>
   <div id="barcodeList" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
  </div>`
