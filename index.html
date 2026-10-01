@@ -52,7 +52,7 @@
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import {getDatabase,ref,onValue,set,remove,get} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
+import {getDatabase,ref,onValue,set,remove,get,runTransaction} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
 const firebaseConfig={apiKey:'AIzaSyDVibI177apEj0K4mFPe7K3mz6SJYnJzoI',authDomain:'labcomgama.firebaseapp.com',projectId:'labcomgama',storageBucket:'labcomgama.firebasestorage.app',messagingSenderId:'368615542114',appId:'1:368615542114:web:7677193524cb582731f03b',measurementId:'G-2T25FNMZ65',databaseURL:'https://labcomgama-default-rtdb.asia-southeast1.firebasedatabase.app'};
 const RTDB_ROOT='labcomgama';
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getDatabase(app);
@@ -410,27 +410,52 @@ window.openItem=(id='')=>{
  $('itemForm').onsubmit=async e=>{
    e.preventDefault();
    const d=Object.fromEntries(new FormData(e.target));
-   const saveId=d.id||crypto.randomUUID();
-   d.id=saveId;
-   d.jumlah=Number(d.jumlah||1);
-   d.updatedAt=Date.now();
-   if(!d.lokasi){alert('Pilih lokasi/ruangan terlebih dahulu.');return;}
-   await set(ref(db,`${RTDB_ROOT}/inventaris/${saveId}`),d);
-   closeModal();
+   const isNew=!d.id;
+  const saveId=d.id||crypto.randomUUID();
+  d.id=saveId;
+  d.jumlah=Number(d.jumlah||1);
+  d.updatedAt=Date.now();
+  if(!d.lokasi){alert('Pilih lokasi/ruangan terlebih dahulu.');return;}
+  try{
+    if(isNew){
+      d.kode=await reserveNextInventoryCode(d.kategori);
+      $('itemCode').value=d.kode;
+    }
+    await set(ref(db,`${RTDB_ROOT}/inventaris/${saveId}`),d);
+    closeModal();
+  }catch(err){
+    console.error(err);
+    alert('Kode inventaris gagal dibuat atau data gagal disimpan. Periksa koneksi Firebase lalu coba lagi.');
+  }
  };
 };
 
-function nextInventoryCode(category){
- const prefix=(categories[category]?.prefix||category||'ITEM').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12)||'ITEM';
+function inventoryPrefix(category){
+ return (categories[category]?.prefix||category||'ITEM').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,12)||'ITEM';
+}
+function maxInventorySequence(data,prefix){
  let max=0;
- Object.values(items).forEach(x=>{
-   const code=String(x.kode||'').toUpperCase();
-   const m=code.match(new RegExp('^'+prefix+'-(\\\\d+)$'));
+ Object.values(data||{}).forEach(x=>{
+   const code=String(x?.kode||'').toUpperCase().trim();
+   const m=code.match(new RegExp('^'+prefix+'-(\\d+)$'));
    if(m)max=Math.max(max,Number(m[1]));
  });
- return `${prefix}-${String(max+1).padStart(2,'0')}`;
+ return max;
 }
-
+function nextInventoryCode(category){
+ const prefix=inventoryPrefix(category);
+ return `${prefix}-${String(maxInventorySequence(items,prefix)+1).padStart(2,'0')}`;
+}
+async function reserveNextInventoryCode(category){
+ const prefix=inventoryPrefix(category);
+ const paths=['inventaris','komputer','perangkat'];
+ const snapshots=await Promise.all(paths.map(path=>get(ref(db,`${RTDB_ROOT}/${path}`))));
+ const maxExisting=snapshots.reduce((max,snap)=>Math.max(max,maxInventorySequence(snap.val()||{},prefix)),0);
+ const counterRef=ref(db,`${RTDB_ROOT}/kodeCounters/${prefix}`);
+ const result=await runTransaction(counterRef,current=>Math.max(Number(current)||0,maxExisting)+1);
+ if(!result.committed)throw new Error('Nomor kode inventaris tidak berhasil dicadangkan.');
+ return `${prefix}-${String(result.snapshot.val()).padStart(2,'0')}`;
+}
 window.deleteItem=async id=>{if(confirm('Hapus data inventaris ini?'))await remove(ref(db,`${RTDB_ROOT}/inventaris/${id}`));}
 window.closeModal=()=>{$('modal').classList.add('hidden');$('modal').classList.remove('flex')}
 window.printLabel=id=>{
